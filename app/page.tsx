@@ -1,15 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { WSStatus } from "./types";
+import FanBlades from "./FanBlades";
+import FanButton from "./FanButton";
 
-type FanSpeed = "off" | "slow" | "medium" | "fast";
-type WSStatus = "connected" | "connecting" | "disconnected";
+import { FanState, FanSpeed } from "@/lib/fan";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+const WS_URL = "wss://ws0.prislex.com/";
 
 export default function Home() {
-  const [speed, setSpeed] = useState<FanSpeed>("off");
   const [wsStatus, setWsStatus] = useState<WSStatus>("connecting");
+
+  const [devices, setDevices] = useState<Record<string, FanState>>({});
+  const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
 
   // WiFi
   const [ssid, setSsid] = useState("");
@@ -18,6 +22,9 @@ export default function Home() {
   const [wifiMessage, setWifiMessage] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+
+  const activeFan = activeDeviceId ? devices[activeDeviceId] : null;
+  const speed = activeFan?.status ?? "off";
 
   // -------------------- WebSocket --------------------
   useEffect(() => {
@@ -28,23 +35,46 @@ export default function Home() {
 
     ws.onopen = () => {
       setWsStatus("connected");
-      ws.send("CHECK_STATUS");
+
+      // HELLO handshake
+      ws.send("HELLO client andre ipoopmypants");
     };
 
     ws.onmessage = (event) => {
-      const msg = event.data.trim();
-      console.log("[WS]", msg);
+      const text = event.data.trim();
+      console.log("[WS]", text);
 
-      if (msg.startsWith("STATUS ")) {
-        setSpeed(msg.split(" ")[1] as FanSpeed);
+      const spaceIndex = text.indexOf(" ");
+      const cmd = spaceIndex === -1 ? text : text.slice(0, spaceIndex);
+      const body = spaceIndex === -1 ? "" : text.slice(spaceIndex + 1);
+
+      if (cmd === "DEVICE_ALL") {
+        const json = JSON.parse(body);
+        setDevices(json);
+
+        // Pick first device automatically
+        const firstId = Object.keys(json)[0];
+        if (firstId) setActiveDeviceId(firstId);
+        return;
       }
 
-      if (msg === "OK WIFI_SAVED") {
-        setWifiMessage("✅ WiFi saved. Device reconnecting…");
+      if (cmd === "DEVICE") {
+        const [deviceId, jsonPart] = body.split(" ", 2);
+        const state = JSON.parse(jsonPart);
+
+        setDevices((prev) => ({
+          ...prev,
+          [deviceId]: state,
+        }));
+
+        if (!activeDeviceId) {
+          setActiveDeviceId(deviceId);
+        }
+        return;
       }
 
-      if (msg.startsWith("ERROR")) {
-        setWifiMessage("❌ " + msg.replace("ERROR ", ""));
+      if (text.startsWith("x error")) {
+        setWifiMessage("❌ " + text.slice(8));
       }
     };
 
@@ -52,12 +82,25 @@ export default function Home() {
     ws.onerror = () => setWsStatus("disconnected");
 
     return () => ws.close();
-  }, []);
+  }, [activeDeviceId]);
 
   // -------------------- Commands --------------------
+  function sendToFan(command: string) {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    if (!activeDeviceId) return;
+
+    wsRef.current.send(`DEVICE ${activeDeviceId} ${command}`);
+  }
+
   function setFanSpeed(newSpeed: FanSpeed) {
+    sendToFan(`SET_STATUS ${newSpeed}`);
+  }
+
+  function toggleRotation() {
     if (wsRef.current?.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(`SET_STATUS ${newSpeed}`);
+
+    const newValue = !activeFan?.rotates;
+    wsRef.current.send(`DEVICE ${activeDeviceId} SET_ROTATES ${newValue}`);
   }
 
   function updateWiFi() {
@@ -66,14 +109,7 @@ export default function Home() {
       return;
     }
 
-    if (wsRef.current?.readyState !== WebSocket.OPEN) return;
-
-    const payload = {
-      ssid,
-      password,
-    };
-
-    wsRef.current.send(`SET_WIFI ${JSON.stringify(payload)}`);
+    sendToFan(`SET_WIFI ${JSON.stringify({ ssid, password })}`);
     setWifiMessage("⏳ Sending WiFi credentials…");
     setPassword("");
   }
@@ -82,7 +118,6 @@ export default function Home() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-linear-to-br from-zinc-100 to-zinc-200 px-6 py-16 dark:from-zinc-950 dark:to-zinc-900">
       <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl dark:bg-zinc-900">
-        {/* Header */}
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
             Smart Fan
@@ -92,7 +127,6 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Fan */}
         <div className="relative mx-auto mb-8 h-48 w-48">
           <div
             className={`absolute inset-0 rounded-full border-8 ${
@@ -101,10 +135,46 @@ export default function Home() {
                 : "border-blue-500"
             }`}
           />
-          <FanBladesSVG speed={speed} />
+          <FanBlades speed={speed} />
         </div>
 
-        {/* Controls */}
+        {/* Ambient info */}
+        <div className="mb-6 grid grid-cols-2 gap-4 text-center">
+          <div className="rounded-xl bg-zinc-100 py-3 dark:bg-zinc-800">
+            <p className="text-xs uppercase text-zinc-500">Temperatura</p>
+            <p className="text-xl font-semibold text-zinc-900 dark:text-white">
+              {activeFan?.temperature !== null
+                ? `${activeFan?.temperature.toFixed(1)} °C`
+                : "--"}
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-zinc-100 py-3 dark:bg-zinc-800">
+            <p className="text-xs uppercase text-zinc-500">Humedad</p>
+            <p className="text-xl font-semibold text-zinc-900 dark:text-white">
+              {activeFan?.humidity !== null
+                ? `${activeFan?.humidity} %`
+                : "--"}
+            </p>
+          </div>
+        </div>
+
+        {/* Rotation toggle */}
+        <button
+          onClick={toggleRotation}
+          disabled={wsStatus !== "connected"}
+          className={`mb-6 w-full rounded-xl py-3 text-sm font-semibold transition
+            ${
+              activeFan?.rotates
+                ? "bg-green-600 text-white"
+                : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+            }
+            disabled:opacity-50
+          `}
+        >
+          {activeFan?.rotates ? "🌀 Rotation ON" : "⏸ Rotation OFF"}
+        </button>
+
         <div className="grid grid-cols-2 gap-3">
           <FanButton label="APAGADO" active={speed === "off"} onClick={() => setFanSpeed("off")} />
           <FanButton label="LENTO" active={speed === "slow"} onClick={() => setFanSpeed("slow")} />
@@ -112,7 +182,6 @@ export default function Home() {
           <FanButton label="RÁPIDO" active={speed === "fast"} onClick={() => setFanSpeed("fast")} />
         </div>
 
-        {/* WiFi Settings */}
         <div className="mt-8">
           <button
             onClick={() => setWifiOpen(!wifiOpen)}
@@ -152,7 +221,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* Footer */}
         <p
           className={`mt-6 text-center text-xs ${
             wsStatus === "connected"
@@ -166,71 +234,5 @@ export default function Home() {
         </p>
       </div>
     </main>
-  );
-}
-
-// -------------------- SVG --------------------
-function FanBladesSVG({ speed }: { speed: FanSpeed }) {
-  const isOn = speed !== "off";
-
-  return (
-    <svg
-      viewBox="-50 -50 100 100"
-      className={`absolute h-full w-full ${isOn ? "animate-spin" : ""}`}
-      style={{
-        animationDuration:
-          speed === "slow"
-            ? "2s"
-            : speed === "medium"
-            ? "1s"
-            : speed === "fast"
-            ? "0.4s"
-            : undefined,
-      }}
-    >
-      {[0, 72, 144, 216, 288].map((angle) => (
-        <g key={angle} transform={`rotate(${angle})`}>
-          <path
-            d="M 0 0 C 6 -8, 14 -28, 4 -42 C -2 -48, -6 -48, -4 -42 C -2 -28, -2 -10, 0 0 Z"
-            className={
-              isOn
-                ? "fill-blue-500"
-                : "fill-zinc-400 dark:fill-zinc-600"
-            }
-          />
-        </g>
-      ))}
-
-      <circle
-        cx="0"
-        cy="0"
-        r="4"
-        className="fill-zinc-800 dark:fill-zinc-200"
-      />
-    </svg>
-  );
-}
-
-// -------------------- Button --------------------
-function FanButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
-        active
-          ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-          : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
-      }`}
-    >
-      {label}
-    </button>
   );
 }

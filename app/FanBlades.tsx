@@ -1,6 +1,6 @@
 'use client';
 
-import { FanSpeed } from "./types";
+import { FanSpeed } from "@/lib/fan";
 
 export default function FanBlades({ speed }: { speed: FanSpeed }) {
   const isOn = speed !== "off";

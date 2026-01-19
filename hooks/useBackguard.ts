@@ -5,7 +5,7 @@ import useWebSocket from "react-use-websocket";
 export type Backguard = ReturnType<typeof useBackguard>;
 
 export default function useBackguard(token: string) {
-  const [ devices, setDevices ] = useState<Record<string, Device<any>>>(null);
+  const [ devices, setDevices ] = useState<Record<string, Device<any>> | null>(null);
 
   const ws = useWebSocket(
     process.env.NEXT_PUBLIC_WS_URL!,
@@ -40,9 +40,9 @@ export default function useBackguard(token: string) {
       const state = JSON.parse(jsonPart.join(" "));
 
       setDevices((prev) => ({
-        ...prev,
+        ...(prev || {}),
         [deviceId]: {
-          ...prev[deviceId],
+          ...(prev || {})[deviceId],
           state,
         },
       }));

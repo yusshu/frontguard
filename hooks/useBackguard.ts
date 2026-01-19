@@ -4,8 +4,8 @@ import useWebSocket from "react-use-websocket";
 
 export type Backguard = ReturnType<typeof useBackguard>;
 
-export default function useBackguard() {
-  const [ devices, setDevices ] = useState<Record<string, Device<any>>>({});
+export default function useBackguard(token: string) {
+  const [ devices, setDevices ] = useState<Record<string, Device<any>>>(null);
 
   const ws = useWebSocket(
     process.env.NEXT_PUBLIC_WS_URL!,
@@ -14,7 +14,7 @@ export default function useBackguard() {
       reconnectAttempts: Number.MAX_VALUE,
       shouldReconnect: () => true,
       onOpen: () => {
-        ws.sendMessage("HELLO client andre 123asdasd");
+        ws.sendMessage("HELLO client " + token);
       },
     },
   );

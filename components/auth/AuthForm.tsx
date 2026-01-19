@@ -1,5 +1,6 @@
 'use client';
 
+import { login } from "@/lib/session";
 import { useState } from "react";
 
 export default function AuthForm({ type }: { type: 'register' | 'login' }) {
@@ -15,17 +16,33 @@ export default function AuthForm({ type }: { type: 'register' | 'login' }) {
     setError(null);
     setLoading(true);
 
+    if (type === 'login') {
+      try {
+        const result = await login(username, password);
+        
+        if (result.ok) {
+          window.location.href = '/';
+        } else {
+          setError(result.error);
+          setLoading(false);
+        }
+      } catch {
+        setError('Server unreachable');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL!}/${type}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL!}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify(
-          type === 'register'
-            ? { username, name, email, password }
-            : { username, password }
+          { username, name, email, password }
         )
       });
 
@@ -36,12 +53,7 @@ export default function AuthForm({ type }: { type: 'register' | 'login' }) {
         return;
       }
 
-      if (type === 'register') {
-        window.location.href = '/login';
-      } else {
-        window.location.href = '/';
-      }
-
+      window.location.href = '/login';
     } catch {
       setError('Server unreachable');
     } finally {

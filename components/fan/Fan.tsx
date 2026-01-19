@@ -1,8 +1,9 @@
 'use client';
 
-import { FanSpeed } from "@/lib/fan";
+import { FanState } from "@/lib/fan";
 
-export default function FanBlades({ speed }: { speed: FanSpeed }) {
+export default function Fan({ state }: { state: FanState }) {
+  const speed = state.status;
   const isOn = speed !== "off";
 
   return (
@@ -20,7 +21,7 @@ export default function FanBlades({ speed }: { speed: FanSpeed }) {
             : undefined,
       }}
     >
-      {[0, 72, 144, 216, 288].map((angle) => (
+      {[ 0, 72, 144, 216, 288 ].map((angle) => (
         <g key={angle} transform={`rotate(${angle})`}>
           <path
             d="M 0 0 C 6 -8, 14 -28, 4 -42 C -2 -48, -6 -48, -4 -42 C -2 -28, -2 -10, 0 0 Z"

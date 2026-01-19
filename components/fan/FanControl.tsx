@@ -5,6 +5,7 @@ import { FanSpeed, FanState } from "@/lib/fan";
 import Fan from "./Fan";
 import { Backguard } from "@/hooks/useBackguard";
 import FanButton from "@/app/FanButton";
+import { useState, useEffect } from "react";
 
 export default function FanControl({
   device,
@@ -13,6 +14,11 @@ export default function FanControl({
   device: Device<FanState>,
   backguard: Backguard, 
 }) {
+  const [wifiOpen, setWifiOpen] = useState(false);
+  const [ssid, setSsid] = useState("");
+  const [password, setPassword] = useState("");
+  const [wifiMessage, setWifiMessage] = useState<string | null>(null);
+
   function sendToFan(command: string) {
     if (backguard.readyState !== WebSocket.OPEN) return;
     backguard.sendMessage(`DEVICE ${device.id} ${command}`);
@@ -27,6 +33,33 @@ export default function FanControl({
     sendToFan(`SET_ROTATES ${newValue}`);
   }
   
+  function updateWiFi() {
+    if (backguard.readyState !== WebSocket.OPEN) return;
+
+    if (!ssid.trim()) {
+      setWifiMessage("SSID is required");
+      return;
+    }
+
+    const payload = JSON.stringify({
+      ssid: ssid.trim(),
+      password,
+    });
+
+    sendToFan(`SET_WIFI ${payload}`);
+    setWifiMessage("Sending WiFi credentials...");
+  }
+
+  useEffect(() => {
+    if (!backguard.lastMessage?.data) return;
+
+    if (backguard.lastMessage.data === "OK WIFI_SAVED") {
+      setWifiMessage("WiFi saved. Device reconnecting…");
+    } else if (backguard.lastMessage.data.toUpperCase().startsWith("ERROR")) {
+      setWifiMessage(backguard.lastMessage.data);
+    }
+  }, [backguard.lastMessage]);
+
   return (
     <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl dark:bg-zinc-900">
       <div className="mb-6 text-center">
@@ -98,14 +131,12 @@ export default function FanControl({
         </>)
       }
 
-      {/*
-      
       <div className="mt-8">
         <button
           onClick={() => setWifiOpen(!wifiOpen)}
           className="w-full rounded-xl bg-zinc-100 px-4 py-3 text-sm font-semibold dark:bg-zinc-800"
         >
-          WiFi Settings
+          Opciones WiFi
         </button>
 
         {wifiOpen && (
@@ -116,6 +147,7 @@ export default function FanControl({
               onChange={(e) => setSsid(e.target.value)}
               className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-zinc-800"
             />
+
             <input
               placeholder="Password"
               type="password"
@@ -126,10 +158,10 @@ export default function FanControl({
 
             <button
               onClick={updateWiFi}
-              disabled={wsStatus !== "connected"}
+              disabled={backguard.readyState !== WebSocket.OPEN}
               className="w-full rounded-xl bg-blue-600 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
-              Update WiFi
+              Actualizar Red WiFi
             </button>
 
             {wifiMessage && (
@@ -138,21 +170,6 @@ export default function FanControl({
           </div>
         )}
       </div>
-
-      <p
-        className={`mt-6 text-center text-xs ${
-          wsStatus === "connected"
-            ? "text-green-500"
-            : wsStatus === "connecting"
-            ? "text-yellow-500"
-            : "text-red-500"
-        }`}
-      >
-        {wsStatus.toUpperCase()}
-      </p>
-      */}
-
-      
     </div>
   );
 }

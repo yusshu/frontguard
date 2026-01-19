@@ -54,6 +54,7 @@ export default function useBackguard(token: string) {
 
   return {
     sendMessage: ws.sendMessage,
+    lastMessage: ws.lastMessage,
     devices,
     readyState: ws.readyState,
   };

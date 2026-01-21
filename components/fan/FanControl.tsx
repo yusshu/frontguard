@@ -11,6 +11,7 @@ import WiFiModal from "../WiFiModal";
 import FanSpeedSlider from "./FanSpeedSlider";
 import FanOscillationSwitch from "./FanOscillationSwitch";
 import { DeviceCard } from "../DeviceCard";
+import { WiHumidity } from "react-icons/wi";
 
 export default function FanControl({
   device,
@@ -44,11 +45,35 @@ export default function FanControl({
           }`}
         />
         <Fan state={device.state || { rotates: false, status: "off", temperature: null, humidity: null }} />
+
+        {device.state && (
+          <div className="absolute -bottom-4 w-[calc(100%+5rem)] -mx-10 flex flex-col text-blue-500/70 text-xs">
+            <span className="flex flex-row items-center -ml-0.5">
+              <WiHumidity className="w-4.5 h-4.5" />
+              <span className="">
+                {device.state?.humidity !== null
+                  ? `${device.state?.humidity}%`
+                  : "--"}
+              </span>
+            </span>
+
+            <span className="flex flex-row items-center gap-1">
+              <FaTemperatureThreeQuarters className="w-3 h-3" />
+              <span className="text-blue-500">
+                {device.state?.temperature !== null
+                  ? `${device.state?.temperature.toFixed(1)}°C`
+                  : "--"}
+              </span>
+            </span>
+          </div>
+        )}
       </div>
 
       {
         device.state === null ? (
-        <p className="mb-6 text-center text-zinc-500">Dispositivo desconectado</p>
+          <p className="mb-6 -mt-2 text-sm text-center text-zinc-700">
+            Dispositivo desconectado
+            </p>
         ) : (<>
           <div className="mt-12 mb-6">
             <FanSpeedSlider
@@ -62,26 +87,6 @@ export default function FanControl({
             value={device.state.rotates}
             onToggle={toggleRotation}
           />
-
-          <div className="mb-6 grid grid-cols-2 gap-4 text-center">
-            <div className="rounded-xl py-2 bg-zinc-800">
-              <p className="text-xs uppercase text-zinc-500">Temperatura</p>
-              <p className="text-lg font-semibold text-white">
-                {device.state?.temperature !== null
-                  ? `${device.state?.temperature.toFixed(1)} °C`
-                  : "--"}
-              </p>
-            </div>
-
-            <div className="rounded-xl py-2 bg-zinc-800">
-              <p className="text-xs uppercase text-zinc-500">Humedad</p>
-              <p className="text-lg font-semibold text-white">
-                {device.state?.humidity !== null
-                  ? `${device.state?.humidity} %`
-                  : "--"}
-              </p>
-            </div>
-          </div>
         </>)
       }
     </DeviceCard>

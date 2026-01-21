@@ -51,7 +51,7 @@ export function DeviceCard({
   }
 
   return (
-    <div className="w-full max-w-md rounded-3xl py-8 px-4 shadow-2xl bg-zinc-900 border border-white/5">
+    <div className="w-full max-w-md rounded-3xl pt-8 pb-1 px-4 shadow-2xl bg-zinc-900 border border-white/5">
       <WiFiModal open={wifiOpen} setOpen={setWifiOpen} onSubmit={updateWiFi} />
 
       <NameChangeModal open={changingName} setOpen={setChangingName} onSubmit={updateDeviceName} initialName={device.name} />
@@ -60,8 +60,11 @@ export function DeviceCard({
         <div className="flex-[0.2]" />
         
         <div
-          onClick={() => setChangingName(true)}
-          className="flex flex-[0.6] flex-col items-center"
+          onClick={() => {
+            if (device.state === null) return;
+            setChangingName(true);
+          }}
+          className={`flex flex-[0.6] flex-col items-center ${device.state === null ? 'opacity-50' : ''}`}
         >
           <h1 className="text-xl font-bold text-white/90">
             {device.name}
@@ -73,8 +76,11 @@ export function DeviceCard({
 
         <div className="flex flex-row items-center justify-end flex-[0.2]">
           <button
-            onClick={() => setWifiOpen(!wifiOpen)}
-            className="p-2 border border-white/5 rounded-md"
+            onClick={() => {
+              if (device.state === null) return;
+              setWifiOpen(!wifiOpen)
+            }}
+            className={`p-2 border border-white/5 rounded-md ${device.state === null ? 'opacity-50' : ''}`}
           >
             <FaWifi className="h-4.5 w-4.5 text-white/50" />
           </button>

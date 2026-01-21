@@ -13,7 +13,7 @@ import FanOscillationSwitch from "./FanOscillationSwitch";
 import { DeviceCard } from "../DeviceCard";
 import { WiHumidity } from "react-icons/wi";
 
-export default function FanControl({
+export default function FanCard({
   device,
   backguard,
 }: {

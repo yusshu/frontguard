@@ -1,7 +1,7 @@
 'use client';
 
 import useBackguard from "@/hooks/useBackguard";
-import FanControl from "@/components/fan/FanControl";
+import FanCard from "@/components/fan/FanCard";
 import { AiOutlineLoading } from "react-icons/ai";
 import { BiNetworkChart } from "react-icons/bi";
 
@@ -41,7 +41,7 @@ export default function ControlPanel({ token }: { token: string }) {
 
       {Object.values(backguard.devices).map(device => {
         switch (device.type) {
-          case 'fan': return <FanControl key={device.id} device={device} backguard={backguard} />;
+          case 'fan': return <FanCard key={device.id} device={device} backguard={backguard} />;
           default: return null;
         }
       })}

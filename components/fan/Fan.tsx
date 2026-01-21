@@ -28,7 +28,7 @@ export default function Fan({ state }: { state: FanState }) {
             className={
               isOn
                 ? "fill-blue-500"
-                : "fill-zinc-400 dark:fill-zinc-600"
+                : "fill-zinc-600"
             }
           />
         </g>
@@ -38,7 +38,7 @@ export default function Fan({ state }: { state: FanState }) {
         cx="0"
         cy="0"
         r="4"
-        className="fill-zinc-800 dark:fill-zinc-200"
+        className="fill-zinc-200"
       />
     </svg>
   );

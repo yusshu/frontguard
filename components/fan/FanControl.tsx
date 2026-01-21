@@ -39,7 +39,7 @@ export default function FanControl({
         <div
           className={`absolute inset-0 rounded-full border-8 ${
             (!device.state || device.state.status === "off")
-              ? "border-zinc-300 dark:border-zinc-700"
+              ? "border-zinc-700"
               : "border-blue-500"
           }`}
         />
@@ -64,18 +64,18 @@ export default function FanControl({
           />
 
           <div className="mb-6 grid grid-cols-2 gap-4 text-center">
-            <div className="rounded-xl bg-zinc-100 py-2 dark:bg-zinc-800">
+            <div className="rounded-xl py-2 bg-zinc-800">
               <p className="text-xs uppercase text-zinc-500">Temperatura</p>
-              <p className="text-lg font-semibold text-zinc-900 dark:text-white">
+              <p className="text-lg font-semibold text-white">
                 {device.state?.temperature !== null
                   ? `${device.state?.temperature.toFixed(1)} °C`
                   : "--"}
               </p>
             </div>
 
-            <div className="rounded-xl bg-zinc-100 py-2 dark:bg-zinc-800">
+            <div className="rounded-xl py-2 bg-zinc-800">
               <p className="text-xs uppercase text-zinc-500">Humedad</p>
-              <p className="text-lg font-semibold text-zinc-900 dark:text-white">
+              <p className="text-lg font-semibold text-white">
                 {device.state?.humidity !== null
                   ? `${device.state?.humidity} %`
                   : "--"}

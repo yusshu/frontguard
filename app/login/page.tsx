@@ -12,7 +12,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-linear-to-br from-zinc-100 to-zinc-200 px-6 py-16 dark:from-zinc-950 dark:to-zinc-900">
+    <main className="flex min-h-screen items-center justify-center bg-linear-to-br px-6 py-16 from-zinc-950 to-zinc-900">
       <AuthForm type="login" />  
     </main>
   );

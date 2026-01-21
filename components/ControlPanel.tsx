@@ -30,7 +30,7 @@ export default function ControlPanel({ token }: { token: string }) {
   }
 
   return (
-    <main className="flex flex-col gap-8 min-h-screen items-center justify-start bg-linear-to-br px-4 py-8 from-zinc-950 to-zinc-900">
+    <main className="flex flex-col gap-4.5 min-h-screen items-center justify-start bg-linear-to-br px-4 py-8 from-zinc-950 to-zinc-900">
       <span className="flex flex-row items-center w-full justify-start">
         <span>
           <BiNetworkChart className="w-6 h-6 text-blue-500/80" />

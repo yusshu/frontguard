@@ -4,12 +4,12 @@ import { Device } from "@/lib/device";
 import { FanSpeed, FanState } from "@/lib/fan";
 import Fan from "./Fan";
 import { Backguard } from "@/hooks/useBackguard";
-import FanButton from "@/app/FanButton";
 import { useState, useEffect } from "react";
 import { FaWifi } from "react-icons/fa";
 import { FaTemperatureThreeQuarters } from "react-icons/fa6";
 import WiFiModal from "../WiFiModal";
 import FanSpeedSlider from "./FanSpeedSlider";
+import FanOscillationSwitch from "./FanOscillationSwitch";
 
 export default function FanControl({
   device,
@@ -94,19 +94,10 @@ export default function FanControl({
           </div>
 
           {/* Rotation toggle */}
-          <button
-            onClick={toggleRotation}
-            className={`mb-6 w-full rounded-xl py-3.5 text-sm font-semibold transition
-              ${
-                device.state?.rotates
-                  ? "bg-green-600/60 text-white/80 border border-white/10"
-                  : "bg-zinc-800 text-zinc-500 border border-white/5"
-              }
-              disabled:opacity-50
-            `}
-          >
-            {device.state?.rotates ? "Oscilación Activada" : "Oscilación Desactivada"}
-          </button>
+          <FanOscillationSwitch
+            value={device.state.rotates}
+            onToggle={toggleRotation}
+          />
 
           <div className="mb-6 grid grid-cols-2 gap-4 text-center">
             <div className="rounded-xl bg-zinc-100 py-2 dark:bg-zinc-800">

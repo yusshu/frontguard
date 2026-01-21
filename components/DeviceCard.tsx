@@ -31,7 +31,23 @@ export function DeviceCard({
   }
 
   async function updateDeviceName(name: string) {
+    await backguard.fetch('/device_name', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId: device.id, name }),
+    });
 
+    // set devices
+    backguard.setDevices((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        [device.id]: {
+          ...prev[device.id],
+          name,
+        },
+      };
+    });
   }
 
   return (

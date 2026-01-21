@@ -53,7 +53,7 @@ export default function useBackguard(token: string) {
   }, [ ws.lastMessage ]);
 
   async function fetch(path: string, options?: RequestInit): Promise<any> {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL!}${path}`, {
+    const response = await window.fetch(`${process.env.NEXT_PUBLIC_API_URL!}${path}`, {
       ...options,
       headers: {
         ...(options?.headers || {}),
@@ -74,6 +74,7 @@ export default function useBackguard(token: string) {
     sendMessage: ws.sendMessage,
     lastMessage: ws.lastMessage,
     devices,
+    setDevices,
     readyState: ws.readyState,
   };
 }

@@ -30,6 +30,7 @@ export default function NameChangeModal({
       setOpen(false);
     } catch (err) {
       setError('No se pudo actualizar el nombre');
+      console.error(err);
     } finally {
       setLoading(false);
     }

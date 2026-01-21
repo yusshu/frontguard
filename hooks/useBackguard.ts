@@ -52,7 +52,25 @@ export default function useBackguard(token: string) {
     console.warn("[WS] Unknown command", cmd);
   }, [ ws.lastMessage ]);
 
+  async function fetch(path: string, options?: RequestInit): Promise<any> {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL!}${path}`, {
+      ...options,
+      headers: {
+        ...(options?.headers || {}),
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   return {
+    token,
+    fetch,
     sendMessage: ws.sendMessage,
     lastMessage: ws.lastMessage,
     devices,

@@ -10,6 +10,7 @@ import { FaTemperatureThreeQuarters } from "react-icons/fa6";
 import WiFiModal from "../WiFiModal";
 import FanSpeedSlider from "./FanSpeedSlider";
 import FanOscillationSwitch from "./FanOscillationSwitch";
+import { DeviceCard } from "../DeviceCard";
 
 export default function FanControl({
   device,
@@ -18,8 +19,6 @@ export default function FanControl({
   device: Device<FanState>,
   backguard: Backguard, 
 }) {
-  const [wifiOpen, setWifiOpen] = useState(false);
-
   function sendToFan(command: string) {
     if (backguard.readyState !== WebSocket.OPEN) return;
     backguard.sendMessage(`DEVICE ${device.id} ${command}`);
@@ -33,44 +32,9 @@ export default function FanControl({
     const newValue = !(device.state ?? { rotates: false }).rotates;
     sendToFan(`SET_ROTATES ${newValue}`);
   }
-  
-  function updateWiFi(ssid: string, password: string) {
-    if (backguard.readyState !== WebSocket.OPEN) return;
-
-    const payload = JSON.stringify({
-      ssid: ssid.trim(),
-      password,
-    });
-
-    sendToFan(`SET_WIFI ${payload}`);
-  }
 
   return (
-    <div className="w-full max-w-md rounded-3xl py-8 px-6 shadow-2xl bg-zinc-900 border border-white/5">
-      <WiFiModal open={wifiOpen} setOpen={setWifiOpen} onSubmit={updateWiFi} />
-
-      <div className="mb-6 text-center flex flex-row justify-between">
-        <div className="flex-[0.2]">
-        </div>
-        <div className="flex flex-[0.6] flex-col items-center">
-          <h1 className="text-2xl font-bold text-white/90">
-            Effio Fan
-          </h1>
-          <p className="text-sm text-zinc-600">
-            ID: <span className="font-mono">{device.name}</span>
-          </p>
-        </div>
-
-        <div className="flex flex-row items-center justify-end flex-[0.2]">
-          <button
-            onClick={() => setWifiOpen(!wifiOpen)}
-            className="p-2 border border-white/5 rounded-md"
-          >
-            <FaWifi className="h-4.5 w-4.5 text-white/50" />
-          </button>
-        </div>
-      </div>
-
+    <DeviceCard backguard={backguard} device={device} sendDeviceCommand={sendToFan}>
       <div className="relative mx-auto mb-8 h-48 w-48">
         <div
           className={`absolute inset-0 rounded-full border-8 ${
@@ -120,6 +84,6 @@ export default function FanControl({
           </div>
         </>)
       }
-    </div>
+    </DeviceCard>
   );
 }

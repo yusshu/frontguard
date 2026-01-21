@@ -7,11 +7,228 @@ import { Backguard } from "@/hooks/useBackguard";
 import { useState, useEffect } from "react";
 import { FaWifi } from "react-icons/fa";
 import { FaTemperatureThreeQuarters } from "react-icons/fa6";
-import WiFiModal from "../WiFiModal";
 import FanSpeedSlider from "./FanSpeedSlider";
 import FanOscillationSwitch from "./FanOscillationSwitch";
 import { DeviceCard } from "../DeviceCard";
 import { WiHumidity } from "react-icons/wi";
+
+type ControlMode = "manual" | "scheduled" | "threshold";
+
+// manual control
+function FanManualControls({
+  device,
+  setFanSpeed,
+  toggleRotation,
+}: {
+  device: Device<FanState>,
+  setFanSpeed: (speed: FanSpeed) => void,
+  toggleRotation: () => void,
+}) {
+  return (
+    <>
+      <div className="mt-5 mb-6">
+        <FanSpeedSlider
+          value={device.state!.status}
+          onChange={setFanSpeed}
+        />
+      </div>
+
+      <FanOscillationSwitch
+        value={device.state!.rotates}
+        onToggle={toggleRotation}
+      />
+    </>
+  );
+}
+
+// scheduled control - fan turns on/off at specific day times
+function FanScheduledControls({
+  send,
+}: {
+  send: (cmd: string) => void;
+}) {
+  const [start, setStart] = useState("08:00");
+  const [end, setEnd] = useState("22:00");
+  const [speed, setSpeed] = useState<FanSpeed>("medium");
+
+  function apply() {
+    send(`SET_SCHEDULE true ${start} ${end} ${speed}`);
+  }
+
+  return (
+    <div className="space-y-4 mt-4">
+      <div className="flex gap-3">
+        <div className="flex flex-col flex-1">
+          <label className="text-xs text-zinc-500 mb-1">Desde</label>
+          <input
+            type="time"
+            value={start}
+            onChange={e => setStart(e.target.value)}
+            className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs"
+          />
+        </div>
+
+        <div className="flex flex-col flex-1">
+          <label className="text-xs text-zinc-500 mb-1">Hasta</label>
+          <input
+            type="time"
+            value={end}
+            onChange={e => setEnd(e.target.value)}
+            className="bg-zinc-900 border border-white/10 rounded-lg px-3 py-2 text-xs"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs text-zinc-500 mb-1 block">
+          Velocidad
+        </label>
+        <FanSpeedSelector value={speed} onChange={setSpeed} />
+      </div>
+
+      <button
+        onClick={apply}
+        className="w-full mt-4 mb-4 text-sm bg-blue-500/20 text-blue-400 border border-blue-500/40 py-2 rounded-lg"
+      >
+        Aplicar programación
+      </button>
+    </div>
+  );
+}
+
+
+function FanSpeedSelector({
+  value,
+  onChange,
+}: {
+  value: FanSpeed;
+  onChange: (s: FanSpeed) => void;
+}) {
+  const speeds: FanSpeed[] = ["slow", "medium", "fast"];
+
+  return (
+    <div className="flex gap-2">
+      {speeds.map(s => (
+        <button
+          key={s}
+          onClick={() => onChange(s)}
+          className={`flex-1 text-xs py-1.5 rounded-lg border transition ${
+            value === s
+              ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
+              : "border-white/10 text-zinc-500 hover:text-zinc-300"
+          }`}
+        >
+          {(() => {
+            switch (s) {
+              case "slow":
+                return "Lenta";
+              case "medium":
+                return "Media";
+              case "fast":
+                return "Rápida";
+            }
+          })()?.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+
+// threshold control - fan turns on/off based on temperature threshold
+function FanThresholdControls({
+  send,
+}: {
+  send: (cmd: string) => void;
+}) {
+  const [value, setValue] = useState(26);
+  const [speed, setSpeed] = useState<FanSpeed>("medium");
+
+  function apply() {
+    send(`SET_THRESHOLD ${value} ${speed}`);
+  }
+
+  return (
+    <div className="space-y-4 mt-4">
+      <div>
+        <label className="text-xs text-zinc-500 mb-1 block">
+          Umbral de activación (°C)
+        </label>
+
+        <input
+          type="number"
+          step={0.1}
+          value={value}
+          onChange={e => setValue(Number(e.target.value))}
+          className="w-full bg-zinc-900 border border-white/10 rounded-lg px-3 py-2"
+        />
+      </div>
+
+      <div>
+        <label className="text-xs text-zinc-500 mb-1 block">
+          Velocidad
+        </label>
+        <FanSpeedSelector value={speed} onChange={setSpeed} />
+      </div>
+
+      <button
+        onClick={apply}
+        className="w-full mt-4 mb-4 text-sm bg-blue-500/20 text-blue-400 border border-blue-500/40 py-2 rounded-lg"
+      >
+        Aplicar umbral
+      </button>
+    </div>
+  );
+}
+
+
+function ControlModeTabs({
+  mode,
+  setMode,
+}: {
+  mode: ControlMode;
+  setMode: (mode: ControlMode) => void;
+}) {
+  const base =
+    "flex-1 text-xs py-1.5 rounded-lg transition border border-white/10";
+
+  return (
+    <div className="flex gap-2 bg-zinc-900/60 py-1 rounded-xl">
+      <button
+        onClick={() => setMode("manual")}
+        className={`${base} ${
+          mode === "manual"
+            ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
+            : "text-zinc-500 hover:text-zinc-300"
+        }`}
+      >
+        Manual
+      </button>
+
+      <button
+        onClick={() => setMode("scheduled")}
+        className={`${base} ${
+          mode === "scheduled"
+            ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
+            : "text-zinc-500 hover:text-zinc-300"
+        }`}
+      >
+        Programado
+      </button>
+
+      <button
+        onClick={() => setMode("threshold")}
+        className={`${base} ${
+          mode === "threshold"
+            ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
+            : "text-zinc-500 hover:text-zinc-300"
+        }`}
+      >
+        Umbral
+      </button>
+    </div>
+  );
+}
 
 export default function FanCard({
   device,
@@ -20,6 +237,8 @@ export default function FanCard({
   device: Device<FanState>,
   backguard: Backguard, 
 }) {
+  const [ mode, setMode ] = useState<ControlMode>("manual");
+
   function sendToFan(command: string) {
     if (backguard.readyState !== WebSocket.OPEN) return;
     backguard.sendMessage(`DEVICE ${device.id} ${command}`);
@@ -75,18 +294,19 @@ export default function FanCard({
             Dispositivo desconectado
             </p>
         ) : (<>
-          <div className="mt-12 mb-6">
-            <FanSpeedSlider
-              value={device.state.status}
-              onChange={setFanSpeed}
-            />
-          </div>
+          <ControlModeTabs mode={mode} setMode={setMode} />
 
-          {/* Rotation toggle */}
-          <FanOscillationSwitch
-            value={device.state.rotates}
-            onToggle={toggleRotation}
-          />
+          {mode === "manual" && (
+            <FanManualControls
+              device={device}
+              setFanSpeed={setFanSpeed}
+              toggleRotation={toggleRotation}
+            />
+          )}
+
+          {mode === "scheduled" && <FanScheduledControls send={sendToFan} />}
+
+          {mode === "threshold" && <FanThresholdControls send={sendToFan} />}
         </>)
       }
     </DeviceCard>

@@ -1,18 +1,15 @@
 'use client';
 
 import { Device } from "@/lib/device";
-import { FanSpeed, FanState } from "@/lib/fan";
+import { FanMode, FanSpeed, FanState } from "@/lib/fan";
 import Fan from "./Fan";
 import { Backguard } from "@/hooks/useBackguard";
-import { useState, useEffect } from "react";
-import { FaWifi } from "react-icons/fa";
+import { useState } from "react";
 import { FaTemperatureThreeQuarters } from "react-icons/fa6";
 import FanSpeedSlider from "./FanSpeedSlider";
 import FanOscillationSwitch from "./FanOscillationSwitch";
 import { DeviceCard } from "../DeviceCard";
 import { WiHumidity } from "react-icons/wi";
-
-type ControlMode = "manual" | "scheduled" | "threshold";
 
 // manual control
 function FanManualControls({
@@ -43,16 +40,19 @@ function FanManualControls({
 
 // scheduled control - fan turns on/off at specific day times
 function FanScheduledControls({
+  device,
   send,
 }: {
+  device: Device<FanState>,
   send: (cmd: string) => void;
 }) {
-  const [start, setStart] = useState("08:00");
-  const [end, setEnd] = useState("22:00");
-  const [speed, setSpeed] = useState<FanSpeed>("medium");
+  const [start, setStart] = useState(device.state!.scheduled_start ?? "08:00");
+  const [end, setEnd] = useState(device.state!.scheduled_end ?? "22:00");
+  const [speed, setSpeed] = useState<FanSpeed>(device.state!.scheduled_or_thresholded_status ?? "medium");
 
   function apply() {
-    send(`SET_SCHEDULE true ${start} ${end} ${speed}`);
+    send(`SCHEDULE ${start} ${end}`);
+    send(`SET_SCHEDULED_OR_THRESHOLDED_STATUS ${speed}`);
   }
 
   return (
@@ -137,15 +137,18 @@ function FanSpeedSelector({
 
 // threshold control - fan turns on/off based on temperature threshold
 function FanThresholdControls({
+  device,
   send,
 }: {
+  device: Device<FanState>,
   send: (cmd: string) => void;
 }) {
-  const [value, setValue] = useState(26);
-  const [speed, setSpeed] = useState<FanSpeed>("medium");
+  const [value, setValue] = useState(device.state!.threshold_temp ?? 25);
+  const [speed, setSpeed] = useState<FanSpeed>(device.state!.scheduled_or_thresholded_status ?? "medium");
 
   function apply() {
-    send(`SET_THRESHOLD ${value} ${speed}`);
+    send(`SET_THRESHOLD ${value}`);
+    send(`SET_SCHEDULED_OR_THRESHOLDED_STATUS ${speed}`);
   }
 
   return (
@@ -183,21 +186,31 @@ function FanThresholdControls({
 
 
 function ControlModeTabs({
-  mode,
-  setMode,
+  device,
+  send,
+  setFanSpeed,
+  toggleRotation,
 }: {
-  mode: ControlMode;
-  setMode: (mode: ControlMode) => void;
+  device: Device<FanState>,
+  send: (cmd: string) => void,
+  setFanSpeed: (speed: FanSpeed) => void,
+  toggleRotation: () => void,
 }) {
+  const [ uiMode, setUiMode ] = useState<FanMode>(device.state!.mode);
   const base =
     "flex-1 text-xs py-1.5 rounded-lg transition border border-white/10";
 
-  return (
+  function setMode(mode: FanMode) {
+    setUiMode(mode);
+    send(`SWITCH_MODE ${mode}`);
+  }
+
+  return (<>
     <div className="flex gap-2 bg-zinc-900/60 py-1 rounded-xl">
       <button
         onClick={() => setMode("manual")}
         className={`${base} ${
-          mode === "manual"
+          uiMode === "manual"
             ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
             : "text-zinc-500 hover:text-zinc-300"
         }`}
@@ -208,7 +221,7 @@ function ControlModeTabs({
       <button
         onClick={() => setMode("scheduled")}
         className={`${base} ${
-          mode === "scheduled"
+          uiMode === "scheduled"
             ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
             : "text-zinc-500 hover:text-zinc-300"
         }`}
@@ -219,7 +232,7 @@ function ControlModeTabs({
       <button
         onClick={() => setMode("threshold")}
         className={`${base} ${
-          mode === "threshold"
+          uiMode === "threshold"
             ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
             : "text-zinc-500 hover:text-zinc-300"
         }`}
@@ -227,7 +240,21 @@ function ControlModeTabs({
         Umbral
       </button>
     </div>
-  );
+    
+    <div className={`${uiMode !== device.state!.mode ? 'opacity-30 animate-pulse' : ''}`}>
+      {uiMode === "manual" && (
+        <FanManualControls
+          device={device}
+          setFanSpeed={setFanSpeed}
+          toggleRotation={toggleRotation}
+        />
+      )}
+
+      {uiMode === "scheduled" && <FanScheduledControls device={device} send={send} />}
+
+      {uiMode === "threshold" && <FanThresholdControls device={device} send={send} />}
+    </div>
+  </>);
 }
 
 export default function FanCard({
@@ -237,8 +264,6 @@ export default function FanCard({
   device: Device<FanState>,
   backguard: Backguard, 
 }) {
-  const [ mode, setMode ] = useState<ControlMode>("manual");
-
   function sendToFan(command: string) {
     if (backguard.readyState !== WebSocket.OPEN) return;
     backguard.sendMessage(`DEVICE ${device.id} ${command}`);
@@ -263,7 +288,10 @@ export default function FanCard({
               : "border-blue-500"
           }`}
         />
-        <Fan state={device.state || { rotates: false, status: "off", temperature: null, humidity: null }} />
+        <Fan state={device.state || {
+          rotates: false, status: "off", temperature: null, humidity: null,
+          mode: 'manual', scheduled_start: null, scheduled_end: null, threshold_temp: null, scheduled_or_thresholded_status: null,
+        }} />
 
         {device.state && (
           <div className="absolute -bottom-4 w-[calc(100%+5rem)] -mx-10 flex flex-col text-blue-500/70 text-xs">
@@ -294,19 +322,7 @@ export default function FanCard({
             Dispositivo desconectado
             </p>
         ) : (<>
-          <ControlModeTabs mode={mode} setMode={setMode} />
-
-          {mode === "manual" && (
-            <FanManualControls
-              device={device}
-              setFanSpeed={setFanSpeed}
-              toggleRotation={toggleRotation}
-            />
-          )}
-
-          {mode === "scheduled" && <FanScheduledControls send={sendToFan} />}
-
-          {mode === "threshold" && <FanThresholdControls send={sendToFan} />}
+          <ControlModeTabs device={device} send={sendToFan} setFanSpeed={setFanSpeed} toggleRotation={toggleRotation} />
         </>)
       }
     </DeviceCard>

@@ -35,7 +35,7 @@ export function DeviceCard({
   }
 
   return (
-    <div className="w-full max-w-md rounded-3xl py-8 px-6 shadow-2xl bg-zinc-900 border border-white/5">
+    <div className="w-full max-w-md rounded-3xl py-8 px-4 shadow-2xl bg-zinc-900 border border-white/5">
       <WiFiModal open={wifiOpen} setOpen={setWifiOpen} onSubmit={updateWiFi} />
 
       <NameChangeModal open={changingName} setOpen={setChangingName} onSubmit={updateDeviceName} initialName={device.name} />
@@ -47,10 +47,10 @@ export function DeviceCard({
           onClick={() => setChangingName(true)}
           className="flex flex-[0.6] flex-col items-center"
         >
-          <h1 className="text-2xl font-bold text-white/90">
+          <h1 className="text-xl font-bold text-white/90">
             {device.name}
           </h1>
-          <p className="text-sm text-zinc-600">
+          <p className="text-xs text-zinc-600">
             ID: <span className="font-mono">{device.id}</span>
           </p>
         </div>

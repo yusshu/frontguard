@@ -32,7 +32,7 @@ export default function FanSpeedSlider({
       />
 
       {/* Labels */}
-      <div className="flex justify-between text-xs text-zinc-500">
+      <div className="flex justify-between text-[0.6rem] text-zinc-500">
         <span>APAGADO</span>
         <span>LENTO</span>
         <span>MEDIO</span>

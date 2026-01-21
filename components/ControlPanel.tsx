@@ -30,13 +30,13 @@ export default function ControlPanel({ token }: { token: string }) {
   }
 
   return (
-    <main className="flex flex-col gap-8 min-h-screen items-center justify-start bg-linear-to-br px-6 py-12 from-zinc-950 to-zinc-900">
+    <main className="flex flex-col gap-8 min-h-screen items-center justify-start bg-linear-to-br px-4 py-8 from-zinc-950 to-zinc-900">
       <span className="flex flex-row items-center w-full justify-start">
         <span>
-          <BiNetworkChart className="w-7.5 h-7.5 text-blue-500/80" />
+          <BiNetworkChart className="w-6 h-6 text-blue-500/80" />
         </span>
-        <span className="ml-2 text-xl text-white/90 font-bold">Effio</span>
-        <span className="text-xl text-blue-500/80">Things</span>
+        <span className="ml-2 text-lg text-white/90 font-bold">Effio</span>
+        <span className="text-lg text-blue-500/80">Things</span>
       </span>
 
       {Object.values(backguard.devices).map(device => {
